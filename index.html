@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lounge — 雑談チャット</title>
+<meta name="description" content="登録不要、誰でもすぐに参加できる雑談チャットラウンジ。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f4f6fa;
+  --surface: #ffffff;
+  --ink: #161a23;
+  --muted: #6b7280;
+  --border: #e4e8f0;
+  --accent: #3762f0;
+  --accent-dark: #2748c4;
+  --accent-soft: #eaf0ff;
+  --sans: 'Zen Kaku Gothic New', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--sans); background: var(--bg); color: var(--ink); line-height: 1.75; -webkit-font-smoothing: antialiased; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; cursor: pointer; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+
+header { background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 50; }
+header .inner { max-width: 1040px; margin: 0 auto; padding: 0 24px; height: 64px; display:flex; align-items:center; justify-content:space-between; }
+.logo { font-weight: 900; font-size: 1.1rem; display:flex; align-items:center; gap:8px;}
+.logo .dot { width:10px; height:10px; border-radius:50%; background: var(--accent); }
+nav ul { list-style:none; display:flex; gap: 24px; }
+nav a { font-size: .85rem; color: var(--muted); font-weight:500; }
+nav a:hover { color: var(--accent); }
+
+.hero { padding: 72px 0 48px; text-align:center; }
+.hero .badge { display:inline-flex; align-items:center; gap:8px; background: var(--accent-soft); color: var(--accent-dark); font-family: var(--mono); font-size:.78rem; font-weight:700; padding:6px 16px; border-radius:999px; margin-bottom:24px; }
+.hero .badge .pulse { width:8px;height:8px;border-radius:50%;background:#2ecc71; animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.35;} }
+.hero h1 { font-size: clamp(2rem, 5vw, 3rem); font-weight:900; letter-spacing:-.02em; margin-bottom:16px; }
+.hero p { color: var(--muted); font-size:1rem; max-width:480px; margin:0 auto; }
+
+.rooms-section { padding: 24px 0 72px; }
+.section-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:24px; }
+.section-head h2 { font-size:1.3rem; font-weight:900; }
+.section-head span { font-family: var(--mono); font-size:.75rem; color: var(--muted); }
+.room-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 16px; }
+.room-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; cursor: pointer; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; position: relative; overflow: hidden; }
+.room-card:hover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(22,26,35,.08); border-color: var(--room-color, var(--accent)); }
+.room-card::before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background: var(--room-color, var(--accent)); }
+.room-card .r-name { font-size:1.08rem; font-weight:700; margin-bottom:8px; }
+.room-card .r-desc { font-size:.85rem; color: var(--muted); margin-bottom:20px; min-height: 2.6em;}
+.room-card .r-foot { display:flex; align-items:center; justify-content:space-between; }
+.room-card .r-count { font-family: var(--mono); font-size:.78rem; color: var(--room-color, var(--accent)); font-weight:700; display:flex; align-items:center; gap:6px; }
+.room-card .r-count .dot { width:6px;height:6px;border-radius:50%; background:currentColor; }
+.room-card .r-enter { font-family: var(--mono); font-size:.72rem; letter-spacing:.05em; color: var(--surface); background: var(--ink); padding:6px 14px; border-radius:999px; }
+
+.guide-block { background: var(--surface); border:1px solid var(--border); border-radius:16px; padding: 32px; margin-top: 48px; }
+.guide-block h3 { font-size:1rem; font-weight:900; margin-bottom:12px; }
+.guide-block ul { padding-left: 1.2em; color: var(--muted); font-size:.88rem; }
+.guide-block li { margin-bottom: 6px; }
+
+footer { border-top:1px solid var(--border); padding: 32px 0; }
+footer .inner { max-width:1040px; margin:0 auto; padding:0 24px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; font-size:.78rem; color: var(--muted); }
+
+.modal-overlay { position: fixed; inset:0; background: rgba(22,26,35,.5); display:flex; align-items:center; justify-content:center; z-index: 100; padding: 24px; opacity:0; pointer-events:none; transition: opacity .2s ease; }
+.modal-overlay.show { opacity:1; pointer-events:auto; }
+.modal-box { background: var(--surface); border-radius: 20px; padding: 32px; max-width: 420px; width:100%; transform: translateY(12px); transition: transform .2s ease; }
+.modal-overlay.show .modal-box { transform: translateY(0); }
+.modal-box h3 { font-size:1.1rem; font-weight:900; margin-bottom:4px; }
+.modal-box .m-room-name { font-family: var(--mono); font-size:.78rem; color: var(--accent); margin-bottom:20px; display:block;}
+.modal-box label { font-size:.78rem; font-weight:700; color: var(--muted); display:block; margin-bottom:8px; }
+.modal-box input[type="text"] { width:100%; padding:12px 14px; border:1.5px solid var(--border); border-radius:10px; font: inherit; font-size:.95rem; margin-bottom:20px; }
+.modal-box input[type="text"]:focus { outline:none; border-color: var(--accent); }
+.icon-grid { display:grid; grid-template-columns: repeat(8, 1fr); gap:6px; margin-bottom:24px; }
+.icon-opt { aspect-ratio:1; border-radius:10px; border:1.5px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:1.2rem; background: var(--bg); transition: border-color .15s, background .15s; }
+.icon-opt.active { border-color: var(--accent); background: var(--accent-soft); }
+.modal-actions { display:flex; gap:10px; }
+.btn { font-family: var(--mono); font-size:.8rem; font-weight:700; padding:12px 20px; border-radius:10px; border:none; flex:1; text-align:center; }
+.btn-primary { background: var(--accent); color:#fff; }
+.btn-primary:hover { background: var(--accent-dark); }
+.btn-ghost { background: var(--bg); color: var(--muted); }
+.btn-ghost:hover { color: var(--ink); }
+
+@media (max-width: 640px) { nav ul { gap:14px; } .icon-grid { grid-template-columns: repeat(6,1fr); } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="inner">
+    <div class="logo"><span class="dot"></span>Lounge</div>
+    <nav><ul>
+      <li><a href="#rooms">ルーム</a></li>
+      <li><a href="#guide">使い方</a></li>
+    </ul></nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="badge"><span class="pulse"></span><span id="totalCount">— 人が参加中</span></div>
+    <h1>雑談ラウンジ</h1>
+    <p>登録不要。名前とアイコンを決めるだけで、今すぐ会話に参加できます。</p>
+  </div>
+</section>
+
+<section class="rooms-section" id="rooms">
+  <div class="wrap">
+    <div class="section-head"><h2>ルーム一覧</h2><span>ROOMS</span></div>
+    <div class="room-grid" id="roomGrid"></div>
+
+    <div class="guide-block" id="guide">
+      <h3>ご利用にあたって</h3>
+      <ul>
+        <li>誰でも匿名で参加できますが、他の参加者を尊重してお使いください。</li>
+        <li>誹謗中傷・個人情報の書き込み・スパムはご遠慮ください。</li>
+        <li>ニックネームとアイコンはいつでも変更できます(入室時に再設定)。</li>
+        <li>ブラウザを閉じると自動的に退室扱いになります。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="inner">
+    <span>© Lounge</span>
+    <span>Powered by Firebase</span>
+  </div>
+</footer>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <h3>入室する</h3>
+    <span class="m-room-name" id="modalRoomName"></span>
+    <label for="nickInput">ニックネーム</label>
+    <input type="text" id="nickInput" maxlength="16" placeholder="名無しさん">
+    <label>アイコン</label>
+    <div class="icon-grid" id="iconGrid"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="modalCancel">やめる</button>
+      <button class="btn btn-primary" id="modalEnter">入室する →</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script>
+/* =====================================================
+   Firebaseの設定（ここを自分のプロジェクトの値に差し替える）
+===================================================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyB2cpviqq_bj6ZhHMrnZUokY8uEpYrAJxY",
+  authDomain: "chat-d1bba.firebaseapp.com",
+  databaseURL: "https://chat-d1bba-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "chat-d1bba",
+  storageBucket: "chat-d1bba.firebasestorage.app",
+  messagingSenderId: "765104695208",
+  appId: "1:765104695208:web:ccd877076556a2a7cf1f9d"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+/* =====================================================
+   ルーム一覧（ここに追加・削除・編集していく）
+===================================================== */
+const CHAT_ROOMS = [
+  { id: 'general', name: '総合ラウンジ', desc: '雑談はなんでもどうぞ。初めての方はまずここへ。', color: '#3762f0' },
+  { id: 'chill',   name: 'まったり部屋', desc: 'のんびりしたい人、作業用にどうぞ。',             color: '#2bb3a3' },
+  { id: 'night',   name: '深夜便',       desc: '夜更かし組の溜まり場。',                         color: '#ff6b4a' },
+];
+
+const ICONS = ['😺','🐶','🐰','🐼','🦊','🐸','🐻','🐨','🦉','🐙','🐢','🦄','👻','🤖','🌙','⭐'];
+
+const roomGrid = document.getElementById('roomGrid');
+const totalCountEl = document.getElementById('totalCount');
+let liveCounts = {};
+
+function renderRooms() {
+  roomGrid.innerHTML = CHAT_ROOMS.map(r => `
+    <div class="room-card" style="--room-color:${r.color}" data-room="${r.id}">
+      <div class="r-name">${r.name}</div>
+      <div class="r-desc">${r.desc}</div>
+      <div class="r-foot">
+        <span class="r-count" data-count="${r.id}"><span class="dot"></span>0人</span>
+        <span class="r-enter">入室する</span>
+      </div>
+    </div>
+  `).join('');
+  roomGrid.querySelectorAll('.room-card').forEach(card => {
+    card.addEventListener('click', () => openModal(card.dataset.room));
+  });
+}
+renderRooms();
+
+CHAT_ROOMS.forEach(r => {
+  db.ref('rooms/' + r.id + '/presence').on('value', snap => {
+    const count = snap.exists() ? Object.keys(snap.val()).length : 0;
+    liveCounts[r.id] = count;
+    const el = roomGrid.querySelector(`[data-count="${r.id}"]`);
+    if (el) el.innerHTML = `<span class="dot"></span>${count}人`;
+    const total = Object.values(liveCounts).reduce((a,b) => a+b, 0);
+    totalCountEl.textContent = `${total} 人が参加中`;
+  });
+});
+
+const overlay = document.getElementById('modalOverlay');
+const modalRoomName = document.getElementById('modalRoomName');
+const nickInput = document.getElementById('nickInput');
+const iconGrid = document.getElementById('iconGrid');
+const modalEnter = document.getElementById('modalEnter');
+const modalCancel = document.getElementById('modalCancel');
+
+let selectedRoom = null;
+let selectedIcon = ICONS[0];
+
+iconGrid.innerHTML = ICONS.map(ic => `<div class="icon-opt" data-icon="${ic}">${ic}</div>`).join('');
+iconGrid.querySelectorAll('.icon-opt').forEach(opt => {
+  opt.addEventListener('click', () => {
+    iconGrid.querySelectorAll('.icon-opt').forEach(o => o.classList.remove('active'));
+    opt.classList.add('active');
+    selectedIcon = opt.dataset.icon;
+  });
+});
+
+function openModal(roomId) {
+  selectedRoom = roomId;
+  const room = CHAT_ROOMS.find(r => r.id === roomId);
+  modalRoomName.textContent = room ? room.name : roomId;
+  const savedName = localStorage.getItem('chat_name');
+  const savedIcon = localStorage.getItem('chat_icon');
+  nickInput.value = savedName || '';
+  selectedIcon = savedIcon || ICONS[0];
+  iconGrid.querySelectorAll('.icon-opt').forEach(o => {
+    o.classList.toggle('active', o.dataset.icon === selectedIcon);
+  });
+  overlay.classList.add('show');
+}
+function closeModal() { overlay.classList.remove('show'); }
+modalCancel.addEventListener('click', closeModal);
+overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+
+modalEnter.addEventListener('click', () => {
+  const name = nickInput.value.trim().slice(0, 16) || '名無しさん';
+  let uid = localStorage.getItem('chat_uid');
+  if (!uid) {
+    uid = 'u-' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+    localStorage.setItem('chat_uid', uid);
+  }
+  localStorage.setItem('chat_name', name);
+  localStorage.setItem('chat_icon', selectedIcon);
+  window.location.href = 'room.html?room=' + encodeURIComponent(selectedRoom);
+});
+</script>
+</body>
+</html>

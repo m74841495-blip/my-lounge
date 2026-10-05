@@ -2,6 +2,14 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<script>
+(function(){
+  try {
+    var t = localStorage.getItem('lounge_theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>チャットルーム — Lounge</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,9 +21,13 @@
   --accent: #3762f0; --accent-dark: #2748c4; --accent-soft: #eaf0ff;
   --sans: 'Zen Kaku Gothic New', sans-serif; --mono: 'JetBrains Mono', monospace;
 }
+:root[data-theme="dark"] {
+  --bg: #0f1117; --surface: #171a23; --ink: #edf0f7; --muted: #8d93a6; --border: #272c3a;
+  --accent: #5b82ff; --accent-dark: #83a0ff; --accent-soft: rgba(91,130,255,.16);
+}
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
-body { font-family: var(--sans); background: var(--bg); color: var(--ink); display: flex; flex-direction: column; }
+body { font-family: var(--sans); background: var(--bg); color: var(--ink); display: flex; flex-direction: column; transition: background .2s ease, color .2s ease; }
 a { color:inherit; text-decoration:none; }
 button { font:inherit; cursor:pointer; }
 
@@ -25,7 +37,10 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); hei
 .back-link:hover { color: var(--accent); }
 .room-tag { display:flex; align-items:center; gap:8px; font-weight:900; }
 .room-tag .dot { width:10px; height:10px; border-radius:50%; background: var(--accent); }
-.h-right { font-family: var(--mono); font-size:.78rem; color: var(--muted); }
+.h-right { display:flex; align-items:center; gap:16px; }
+.online-count { font-family: var(--mono); font-size:.78rem; color: var(--muted); }
+.theme-toggle { width:34px; height:34px; border-radius:9px; border:1.5px solid var(--border); background: var(--surface); font-size:.95rem; display:flex; align-items:center; justify-content:center; }
+.theme-toggle:hover { border-color: var(--accent); }
 
 .layout { flex:1; display:flex; min-height:0; }
 .sidebar { width: 220px; flex: 0 0 auto; background: var(--surface); border-right: 1px solid var(--border); padding: 20px; overflow-y:auto; }
@@ -33,12 +48,14 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); hei
 .member { display:flex; align-items:center; gap:8px; padding:7px 0; font-size:.88rem; }
 .member .m-icon { font-size:1.1rem; }
 .member .me-tag { font-family: var(--mono); font-size:.62rem; color: var(--accent); margin-left:auto; }
+.admin-badge { font-size: .9em; }
 
 .chat-col { flex:1; display:flex; flex-direction:column; min-width:0; }
 .messages { flex:1; overflow-y:auto; padding: 24px; display:flex; flex-direction:column; gap:14px; }
 .msg { display:flex; gap:10px; max-width: 72%; }
 .msg.me { align-self:flex-end; flex-direction:row-reverse; }
-
+.msg .m-icon { width:34px; height:34px; border-radius:50%; background: var(--accent-soft); display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex:0 0 auto; }
+.msg .m-icon.admin-icon { box-shadow: 0 0 0 2px #ffc107; }
 .msg .m-body { min-width:0; }
 .msg .m-meta { font-family: var(--mono); font-size:.68rem; color: var(--muted); margin-bottom:4px; }
 .msg.me .m-meta { text-align:right; }
@@ -46,25 +63,23 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); hei
 .msg.me .m-bubble { background: var(--accent); color:#fff; border-color:var(--accent); }
 
 .composer { flex: 0 0 auto; border-top: 1px solid var(--border); background: var(--surface); padding: 14px 20px; display:flex; gap:10px; }
-.composer input { flex:1; border:1.5px solid var(--border); border-radius:12px; padding:12px 16px; font:inherit; font-size:.92rem; }
+.composer input { flex:1; border:1.5px solid var(--border); border-radius:12px; padding:12px 16px; font:inherit; font-size:.92rem; background: var(--bg); color: var(--ink); }
 .composer input:focus { outline:none; border-color: var(--accent); }
 .composer button { background: var(--accent); color:#fff; border:none; padding:0 24px; border-radius:12px; font-family: var(--mono); font-weight:700; font-size:.82rem; }
 .composer button:hover { background: var(--accent-dark); }
 .composer button:disabled { opacity:.5; cursor:default; }
 
-.modal-overlay { position: fixed; inset:0; background: rgba(22,26,35,.5); display:flex; align-items:center; justify-content:center; z-index: 100; padding: 24px; }
+.modal-overlay { position: fixed; inset:0; background: rgba(10,12,18,.55); display:flex; align-items:center; justify-content:center; z-index: 100; padding: 24px; }
 .modal-box { background: var(--surface); border-radius: 20px; padding: 32px; max-width: 420px; width:100%; }
 .modal-box h3 { font-size:1.1rem; font-weight:900; margin-bottom:20px; }
 .modal-box label { font-size:.78rem; font-weight:700; color: var(--muted); display:block; margin-bottom:8px; }
-.modal-box input[type="text"] { width:100%; padding:12px 14px; border:1.5px solid var(--border); border-radius:10px; font: inherit; font-size:.95rem; margin-bottom:20px; }
+.modal-box input[type="text"] { width:100%; padding:12px 14px; border:1.5px solid var(--border); border-radius:10px; font: inherit; font-size:.95rem; margin-bottom:20px; background: var(--bg); color: var(--ink); }
 .icon-grid { display:grid; grid-template-columns: repeat(8, 1fr); gap:6px; margin-bottom:24px; }
 .icon-opt { aspect-ratio:1; border-radius:10px; border:1.5px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:1.2rem; background: var(--bg); }
 .icon-opt.active { border-color: var(--accent); background: var(--accent-soft); }
 .btn { font-family: var(--mono); font-size:.8rem; font-weight:700; padding:12px 20px; border-radius:10px; border:none; width:100%; background: var(--accent); color:#fff; }
 
 @media (max-width: 760px) { .sidebar { display:none; } .msg { max-width:88%; } }
-.msg .m-icon.admin-icon { box-shadow: 0 0 0 2px #ffc107; }
-.admin-badge { font-size: .9em; }
 </style>
 </head>
 <body>
@@ -72,9 +87,12 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); hei
 <header>
   <div class="h-left">
     <a href="index.html" class="back-link">← ロビー</a>
-    <div class="room-tag" id="roomTag"><span class="dot"></span><span id="roomTitle">ルーム</span></div>
+    <div class="room-tag" id="roomTag"><span class="dot"></span><span id="roomTitle">読み込み中…</span></div>
   </div>
-  <div class="h-right" id="onlineCount">0人が在室</div>
+  <div class="h-right">
+    <span class="online-count" id="onlineCount">0人が在室</span>
+    <button class="theme-toggle" id="themeToggle" aria-label="テーマ切り替え">🌙</button>
+  </div>
 </header>
 
 <div class="layout">
@@ -105,9 +123,7 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); hei
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 <script>
-/* =====================================================
-   Firebaseの設定（index.htmlと同じ値を貼る）
-===================================================== */
+/* ===== Firebase設定 ===== */
 const firebaseConfig = {
   apiKey: "AIzaSyB2cpviqq_bj6ZhHMrnZUokY8uEpYrAJxY",
   authDomain: "chat-d1bba.firebaseapp.com",
@@ -120,29 +136,32 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-/* ルーム名・色の表示用（index.htmlと同じ内容にしておくと綺麗に表示されます） */
-const CHAT_ROOMS = [
-  { id: 'general', name: '総合ラウンジ', color: '#3762f0' },
-  { id: 'chill',   name: 'まったり部屋', color: '#2bb3a3' },
-  { id: 'night',   name: '深夜便',       color: '#ff6b4a' },
-];
-const ICONS = ['😺','🐶','🐰','🐼','🦊','🐸','🐻','🐨','🦉','🐙','🐢','🦄','👻','🤖','🌙','⭐'];
-
-/* =====================================================
-   管理者マークの設定（index.htmlと同じ合言葉にする）
-===================================================== */
+/* ===== 管理者設定（index.htmlと同じ合言葉にする） ===== */
 const ADMIN_SECRET = 'Nishi1229';
 const ADMIN_UID = 'admin-root';
-
 const params = new URLSearchParams(location.search);
 if (params.get('admin') === ADMIN_SECRET) {
   localStorage.setItem('chat_uid', ADMIN_UID);
 }
-const roomId = params.get('room') || 'general';
-const roomInfo = CHAT_ROOMS.find(r => r.id === roomId) || { id: roomId, name: roomId, color: '#3762f0' };
 
-document.getElementById('roomTitle').textContent = roomInfo.name;
-document.querySelector('.room-tag .dot').style.background = roomInfo.color;
+/* ===== テーマ切り替え ===== */
+function applyThemeIcon() {
+  const t = document.documentElement.getAttribute('data-theme');
+  document.getElementById('themeToggle').textContent = t === 'dark' ? '☀️' : '🌙';
+}
+applyThemeIcon();
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('lounge_theme', next);
+  applyThemeIcon();
+});
+
+/* ===== ルーム情報 ===== */
+const OFFICIAL_ROOM = { id: 'general', name: '総合ラウンジ', color: '#3762f0' };
+const ICONS = ['😺','🐶','🐰','🐼','🦊','🐸','🐻','🐨','🦉','🐙','🐢','🦄','👻','🤖','🌙','⭐'];
+const roomId = params.get('room') || 'general';
 
 let uid = localStorage.getItem('chat_uid');
 let myName = localStorage.getItem('chat_name');
@@ -161,22 +180,39 @@ iconGrid.querySelectorAll('.icon-opt').forEach(opt => {
   });
 });
 
-if (!uid || !myName || !myIcon) {
-  entryOverlay.style.display = 'flex';
-  document.getElementById('entryBtn').addEventListener('click', () => {
-    const name = document.getElementById('nickInput').value.trim().slice(0,16) || '名無しさん';
-    uid = 'u-' + Math.random().toString(36).slice(2,10) + Date.now().toString(36);
-    myName = name;
-    myIcon = pickedIcon;
-    localStorage.setItem('chat_uid', uid);
-    localStorage.setItem('chat_name', myName);
-    localStorage.setItem('chat_icon', myIcon);
-    entryOverlay.style.display = 'none';
-    joinRoom();
+function resolveRoomInfo(callback) {
+  if (roomId === OFFICIAL_ROOM.id) {
+    callback(OFFICIAL_ROOM);
+    return;
+  }
+  db.ref('room_list/' + roomId).once('value').then(snap => {
+    const d = snap.val();
+    callback(d ? { id: roomId, name: d.name, color: d.color || '#3762f0' }
+                : { id: roomId, name: '不明なルーム', color: '#7f8c8d' });
   });
-} else {
-  joinRoom();
 }
+
+resolveRoomInfo(roomInfo => {
+  document.getElementById('roomTitle').textContent = roomInfo.name;
+  document.querySelector('.room-tag .dot').style.background = roomInfo.color;
+
+  if (!uid || !myName || !myIcon) {
+    entryOverlay.style.display = 'flex';
+    document.getElementById('entryBtn').addEventListener('click', () => {
+      const name = document.getElementById('nickInput').value.trim().slice(0, 16) || '名無しさん';
+      uid = localStorage.getItem('chat_uid') || ('u-' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36));
+      myName = name;
+      myIcon = pickedIcon;
+      localStorage.setItem('chat_uid', uid);
+      localStorage.setItem('chat_name', myName);
+      localStorage.setItem('chat_icon', myIcon);
+      entryOverlay.style.display = 'none';
+      joinRoom();
+    });
+  } else {
+    joinRoom();
+  }
+});
 
 function joinRoom() {
   const presenceRef = db.ref('rooms/' + roomId + '/presence/' + uid);
@@ -191,24 +227,24 @@ function joinRoom() {
     document.getElementById('onlineCount').textContent = keys.length + '人が在室';
     list.innerHTML = '';
     keys.forEach(k => {
-  const m = data[k];
-  const row = document.createElement('div');
-  row.className = 'member';
-  const iconSpan = document.createElement('span');
-  iconSpan.className = 'm-icon';
-  iconSpan.textContent = m.icon;
-  const nameSpan = document.createElement('span');
-  nameSpan.textContent = m.name;
-  row.appendChild(iconSpan);
-  row.appendChild(nameSpan);
-  if (k === ADMIN_UID) {
-    const badge = document.createElement('span');
-    badge.className = 'admin-badge';
-    badge.textContent = '👑';
-    badge.title = '管理者';
-    row.appendChild(badge);
-  }
-  if (k === uid) {
+      const m = data[k];
+      const row = document.createElement('div');
+      row.className = 'member';
+      const iconSpan = document.createElement('span');
+      iconSpan.className = 'm-icon';
+      iconSpan.textContent = m.icon;
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = m.name;
+      row.appendChild(iconSpan);
+      row.appendChild(nameSpan);
+      if (k === ADMIN_UID) {
+        const badge = document.createElement('span');
+        badge.className = 'admin-badge';
+        badge.textContent = '👑';
+        badge.title = '管理者';
+        row.appendChild(badge);
+      }
+      if (k === uid) {
         const meTag = document.createElement('span');
         meTag.className = 'me-tag';
         meTag.textContent = 'YOU';
@@ -219,37 +255,37 @@ function joinRoom() {
   });
 
   const messagesEl = document.getElementById('messages');
-db.ref('rooms/' + roomId + '/messages').limitToLast(100).on('child_added', snap => {
-  const m = snap.val();
-  if (!m) return;
-  const row = document.createElement('div');
-  row.className = 'msg' + (m.uid === uid ? ' me' : '');
-  const iconEl = document.createElement('div');
-  iconEl.className = 'm-icon' + (m.uid === ADMIN_UID ? ' admin-icon' : '');
-  iconEl.textContent = m.icon || '🙂';
-  const body = document.createElement('div');
-  body.className = 'm-body';
-  const meta = document.createElement('div');
-  meta.className = 'm-meta';
-  const time = m.time ? new Date(m.time).toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit'}) : '';
-  if (m.uid === ADMIN_UID) {
-    const badge = document.createElement('span');
-    badge.className = 'admin-badge';
-    badge.textContent = '👑 ';
-    badge.title = '管理者';
-    meta.appendChild(badge);
-  }
-  meta.appendChild(document.createTextNode((m.name || '名無しさん') + '・' + time));
-  const bubble = document.createElement('div');
-  bubble.className = 'm-bubble';
-  bubble.textContent = m.text || '';
-  body.appendChild(meta);
-  body.appendChild(bubble);
-  row.appendChild(iconEl);
-  row.appendChild(body);
-  messagesEl.appendChild(row);
-  messagesEl.scrollTop = messagesEl.scrollHeight;
-});
+  db.ref('rooms/' + roomId + '/messages').limitToLast(100).on('child_added', snap => {
+    const m = snap.val();
+    if (!m) return;
+    const row = document.createElement('div');
+    row.className = 'msg' + (m.uid === uid ? ' me' : '');
+    const iconEl = document.createElement('div');
+    iconEl.className = 'm-icon' + (m.uid === ADMIN_UID ? ' admin-icon' : '');
+    iconEl.textContent = m.icon || '🙂';
+    const body = document.createElement('div');
+    body.className = 'm-body';
+    const meta = document.createElement('div');
+    meta.className = 'm-meta';
+    const time = m.time ? new Date(m.time).toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit'}) : '';
+    if (m.uid === ADMIN_UID) {
+      const badge = document.createElement('span');
+      badge.className = 'admin-badge';
+      badge.textContent = '👑 ';
+      badge.title = '管理者';
+      meta.appendChild(badge);
+    }
+    meta.appendChild(document.createTextNode((m.name || '名無しさん') + '・' + time));
+    const bubble = document.createElement('div');
+    bubble.className = 'm-bubble';
+    bubble.textContent = m.text || '';
+    body.appendChild(meta);
+    body.appendChild(bubble);
+    row.appendChild(iconEl);
+    row.appendChild(body);
+    messagesEl.appendChild(row);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  });
 
   const input = document.getElementById('msgInput');
   const sendBtn = document.getElementById('sendBtn');
@@ -258,7 +294,7 @@ db.ref('rooms/' + roomId + '/messages').limitToLast(100).on('child_added', snap 
     if (!text) return;
     sendBtn.disabled = true;
     db.ref('rooms/' + roomId + '/messages').push({
-      uid, name: myName, icon: myIcon, text: text.slice(0,300),
+      uid, name: myName, icon: myIcon, text: text.slice(0, 300),
       time: firebase.database.ServerValue.TIMESTAMP
     }).then(() => {
       input.value = '';

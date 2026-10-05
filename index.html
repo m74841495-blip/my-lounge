@@ -2,6 +2,14 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<script>
+(function(){
+  try {
+    var t = localStorage.getItem('lounge_theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lounge — 雑談チャット</title>
 <meta name="description" content="登録不要、誰でもすぐに参加できる雑談チャットラウンジ。">
@@ -18,22 +26,37 @@
   --accent: #3762f0;
   --accent-dark: #2748c4;
   --accent-soft: #eaf0ff;
+  --shadow: rgba(22,26,35,.08);
   --sans: 'Zen Kaku Gothic New', sans-serif;
   --mono: 'JetBrains Mono', monospace;
 }
+:root[data-theme="dark"] {
+  --bg: #0f1117;
+  --surface: #171a23;
+  --ink: #edf0f7;
+  --muted: #8d93a6;
+  --border: #272c3a;
+  --accent: #5b82ff;
+  --accent-dark: #83a0ff;
+  --accent-soft: rgba(91,130,255,.16);
+  --shadow: rgba(0,0,0,.4);
+}
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: var(--sans); background: var(--bg); color: var(--ink); line-height: 1.75; -webkit-font-smoothing: antialiased; }
+body { font-family: var(--sans); background: var(--bg); color: var(--ink); line-height: 1.75; -webkit-font-smoothing: antialiased; transition: background .2s ease, color .2s ease; }
 a { color: inherit; text-decoration: none; }
 button { font: inherit; cursor: pointer; }
 .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
 
-header { background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 50; }
+header { background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 50; transition: background .2s ease, border-color .2s ease; }
 header .inner { max-width: 1040px; margin: 0 auto; padding: 0 24px; height: 64px; display:flex; align-items:center; justify-content:space-between; }
 .logo { font-weight: 900; font-size: 1.1rem; display:flex; align-items:center; gap:8px;}
 .logo .dot { width:10px; height:10px; border-radius:50%; background: var(--accent); }
+.header-right { display:flex; align-items:center; gap:20px; }
 nav ul { list-style:none; display:flex; gap: 24px; }
 nav a { font-size: .85rem; color: var(--muted); font-weight:500; }
 nav a:hover { color: var(--accent); }
+.theme-toggle { width:38px; height:38px; border-radius:10px; border:1.5px solid var(--border); background: var(--surface); font-size:1rem; display:flex; align-items:center; justify-content:center; transition: border-color .15s; }
+.theme-toggle:hover { border-color: var(--accent); }
 
 .hero { padding: 72px 0 48px; text-align:center; }
 .hero .badge { display:inline-flex; align-items:center; gap:8px; background: var(--accent-soft); color: var(--accent-dark); font-family: var(--mono); font-size:.78rem; font-weight:700; padding:6px 16px; border-radius:999px; margin-bottom:24px; }
@@ -46,18 +69,31 @@ nav a:hover { color: var(--accent); }
 .section-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:24px; }
 .section-head h2 { font-size:1.3rem; font-weight:900; }
 .section-head span { font-family: var(--mono); font-size:.75rem; color: var(--muted); }
+
+.genre-block { margin-bottom: 40px; }
+.genre-head { display:flex; align-items:center; gap:10px; font-weight:900; font-size:1rem; margin-bottom:14px; }
+.genre-dot { width:10px; height:10px; border-radius:50%; flex:0 0 auto; }
+.official-badge { font-family: var(--mono); font-size:.65rem; color: var(--accent); background: var(--accent-soft); padding:2px 8px; border-radius:999px; }
+.genre-empty { font-size:.82rem; color: var(--muted); margin-top: -4px; }
+
 .room-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 16px; }
 .room-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; cursor: pointer; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; position: relative; overflow: hidden; }
-.room-card:hover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(22,26,35,.08); border-color: var(--room-color, var(--accent)); }
+.room-card:hover { transform: translateY(-3px); box-shadow: 0 12px 24px var(--shadow); border-color: var(--room-color, var(--accent)); }
 .room-card::before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background: var(--room-color, var(--accent)); }
-.room-card .r-name { font-size:1.08rem; font-weight:700; margin-bottom:8px; }
+.room-card .r-badge { position:absolute; top:14px; right:14px; font-family: var(--mono); font-size:.6rem; font-weight:700; background: var(--room-color, var(--accent)); color:#fff; padding:3px 9px; border-radius:999px; }
+.room-card .r-name { font-size:1.08rem; font-weight:700; margin-bottom:8px; padding-right: 50px; }
 .room-card .r-desc { font-size:.85rem; color: var(--muted); margin-bottom:20px; min-height: 2.6em;}
 .room-card .r-foot { display:flex; align-items:center; justify-content:space-between; }
 .room-card .r-count { font-family: var(--mono); font-size:.78rem; color: var(--room-color, var(--accent)); font-weight:700; display:flex; align-items:center; gap:6px; }
 .room-card .r-count .dot { width:6px;height:6px;border-radius:50%; background:currentColor; }
 .room-card .r-enter { font-family: var(--mono); font-size:.72rem; letter-spacing:.05em; color: var(--surface); background: var(--ink); padding:6px 14px; border-radius:999px; }
 
-.guide-block { background: var(--surface); border:1px solid var(--border); border-radius:16px; padding: 32px; margin-top: 48px; }
+.room-card-new { border: 1.5px dashed var(--border); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color: var(--muted); background: transparent; width:100%; min-height: 150px; }
+.room-card-new:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-3px); }
+.r-new-icon { font-size:1.8rem; font-weight:900; line-height:1; }
+.r-new-label { font-size:.85rem; font-weight:700; }
+
+.guide-block { background: var(--surface); border:1px solid var(--border); border-radius:16px; padding: 32px; margin-top: 8px; }
 .guide-block h3 { font-size:1rem; font-weight:900; margin-bottom:12px; }
 .guide-block ul { padding-left: 1.2em; color: var(--muted); font-size:.88rem; }
 .guide-block li { margin-bottom: 6px; }
@@ -65,15 +101,15 @@ nav a:hover { color: var(--accent); }
 footer { border-top:1px solid var(--border); padding: 32px 0; }
 footer .inner { max-width:1040px; margin:0 auto; padding:0 24px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; font-size:.78rem; color: var(--muted); }
 
-.modal-overlay { position: fixed; inset:0; background: rgba(22,26,35,.5); display:flex; align-items:center; justify-content:center; z-index: 100; padding: 24px; opacity:0; pointer-events:none; transition: opacity .2s ease; }
+.modal-overlay { position: fixed; inset:0; background: rgba(10,12,18,.55); display:flex; align-items:center; justify-content:center; z-index: 100; padding: 24px; opacity:0; pointer-events:none; transition: opacity .2s ease; }
 .modal-overlay.show { opacity:1; pointer-events:auto; }
-.modal-box { background: var(--surface); border-radius: 20px; padding: 32px; max-width: 420px; width:100%; transform: translateY(12px); transition: transform .2s ease; }
+.modal-box { background: var(--surface); border-radius: 20px; padding: 32px; max-width: 420px; width:100%; transform: translateY(12px); transition: transform .2s ease; max-height: 86vh; overflow-y: auto; }
 .modal-overlay.show .modal-box { transform: translateY(0); }
 .modal-box h3 { font-size:1.1rem; font-weight:900; margin-bottom:4px; }
 .modal-box .m-room-name { font-family: var(--mono); font-size:.78rem; color: var(--accent); margin-bottom:20px; display:block;}
-.modal-box label { font-size:.78rem; font-weight:700; color: var(--muted); display:block; margin-bottom:8px; }
-.modal-box input[type="text"] { width:100%; padding:12px 14px; border:1.5px solid var(--border); border-radius:10px; font: inherit; font-size:.95rem; margin-bottom:20px; }
-.modal-box input[type="text"]:focus { outline:none; border-color: var(--accent); }
+.modal-box label { font-size:.78rem; font-weight:700; color: var(--muted); display:block; margin-bottom:8px; margin-top: 4px; }
+.modal-box input[type="text"], .modal-box select { width:100%; padding:12px 14px; border:1.5px solid var(--border); border-radius:10px; font: inherit; font-size:.95rem; margin-bottom:20px; background: var(--bg); color: var(--ink); }
+.modal-box input[type="text"]:focus, .modal-box select:focus { outline:none; border-color: var(--accent); }
 .icon-grid { display:grid; grid-template-columns: repeat(8, 1fr); gap:6px; margin-bottom:24px; }
 .icon-opt { aspect-ratio:1; border-radius:10px; border:1.5px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:1.2rem; background: var(--bg); transition: border-color .15s, background .15s; }
 .icon-opt.active { border-color: var(--accent); background: var(--accent-soft); }
@@ -92,17 +128,20 @@ footer .inner { max-width:1040px; margin:0 auto; padding:0 24px; display:flex; j
 <header>
   <div class="inner">
     <div class="logo"><span class="dot"></span>Lounge</div>
-    <nav><ul>
-      <li><a href="#rooms">ルーム</a></li>
-      <li><a href="#guide">使い方</a></li>
-    </ul></nav>
+    <div class="header-right">
+      <nav><ul>
+        <li><a href="#rooms">ルーム</a></li>
+        <li><a href="#guide">使い方</a></li>
+      </ul></nav>
+      <button class="theme-toggle" id="themeToggle" aria-label="テーマ切り替え">🌙</button>
+    </div>
   </div>
 </header>
 
 <section class="hero">
   <div class="wrap">
     <div class="badge"><span class="pulse"></span><span id="totalCount">— 人が参加中</span></div>
-    <h1>雑談ラウンジ</h1>
+    <h1>Theチャット</h1>
     <p>登録不要。名前とアイコンを決めるだけで、今すぐ会話に参加できます。</p>
   </div>
 </section>
@@ -110,7 +149,8 @@ footer .inner { max-width:1040px; margin:0 auto; padding:0 24px; display:flex; j
 <section class="rooms-section" id="rooms">
   <div class="wrap">
     <div class="section-head"><h2>ルーム一覧</h2><span>ROOMS</span></div>
-    <div class="room-grid" id="roomGrid"></div>
+
+    <div id="roomsContainer"></div>
 
     <div class="guide-block" id="guide">
       <h3>ご利用にあたって</h3>
@@ -118,6 +158,7 @@ footer .inner { max-width:1040px; margin:0 auto; padding:0 24px; display:flex; j
         <li>誰でも匿名で参加できますが、他の参加者を尊重してお使いください。</li>
         <li>誹謗中傷・個人情報の書き込み・スパムはご遠慮ください。</li>
         <li>ニックネームとアイコンはいつでも変更できます(入室時に再設定)。</li>
+        <li>ルームは誰でも自由に作成できます。不適切なルームは予告なく削除される場合があります。</li>
         <li>ブラウザを閉じると自動的に退室扱いになります。</li>
       </ul>
     </div>
@@ -126,7 +167,7 @@ footer .inner { max-width:1040px; margin:0 auto; padding:0 24px; display:flex; j
 
 <footer>
   <div class="inner">
-    <span>© 2026 まりお</span>
+    <span>© Lounge</span>
     <span>Powered by Firebase</span>
   </div>
 </footer>
@@ -146,12 +187,26 @@ footer .inner { max-width:1040px; margin:0 auto; padding:0 24px; display:flex; j
   </div>
 </div>
 
+<div class="modal-overlay" id="createOverlay">
+  <div class="modal-box">
+    <h3>新しいルームを作る</h3>
+    <label for="roomNameInput">ルーム名</label>
+    <input type="text" id="roomNameInput" maxlength="24" placeholder="例:深夜の作業用部屋">
+    <label for="roomGenreSelect">ジャンル</label>
+    <select id="roomGenreSelect"></select>
+    <label for="roomDescInput">説明(任意)</label>
+    <input type="text" id="roomDescInput" maxlength="60" placeholder="どんな部屋か一言で">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="createCancel">やめる</button>
+      <button class="btn btn-primary" id="createSubmit">作成して入室 →</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 <script>
-/* =====================================================
-   Firebaseの設定（ここを自分のプロジェクトの値に差し替える）
-===================================================== */
+/* ===== Firebase設定 ===== */
 const firebaseConfig = {
   apiKey: "AIzaSyB2cpviqq_bj6ZhHMrnZUokY8uEpYrAJxY",
   authDomain: "chat-d1bba.firebaseapp.com",
@@ -164,24 +219,9 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-/* =====================================================
-   ルーム一覧（ここに追加・削除・編集していく）
-===================================================== */
-const CHAT_ROOMS = [
-  { id: 'general', name: '総合ラウンジ', desc: '雑談はなんでもどうぞ。初めての方はまずここへ。', color: '#3762f0' },
-  { id: 'chill',   name: 'まったり部屋', desc: 'のんびりしたい人、作業用にどうぞ。',             color: '#2bb3a3' },
-  { id: 'night',   name: '深夜便',       desc: '夜更かし組の溜まり場。',                         color: '#ff6b4a' },
-];
-
-const ICONS = ['😺','🐶','🐰','🐼','🦊','🐸','🐻','🐨','🦉','🐙','🐢','🦄','👻','🤖','🌙','⭐'];
-
-/* =====================================================
-   管理者マークの設定
-   ADMIN_SECRET は自分だけが知っている合言葉に変更してください
-===================================================== */
+/* ===== 管理者設定（自分だけの合言葉に変更してください） ===== */
 const ADMIN_SECRET = 'Nishi1229';
 const ADMIN_UID = 'admin-root';
-
 (function claimAdminIfNeeded() {
   const p = new URLSearchParams(location.search);
   if (p.get('admin') === ADMIN_SECRET) {
@@ -189,35 +229,132 @@ const ADMIN_UID = 'admin-root';
   }
 })();
 
-const roomGrid = document.getElementById('roomGrid');
-let liveCounts = {};
+/* ===== テーマ切り替え ===== */
+function applyThemeIcon() {
+  const t = document.documentElement.getAttribute('data-theme');
+  document.getElementById('themeToggle').textContent = t === 'dark' ? '☀️' : '🌙';
+}
+applyThemeIcon();
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('lounge_theme', next);
+  applyThemeIcon();
+});
 
-function renderRooms() {
-  roomGrid.innerHTML = CHAT_ROOMS.map(r => `
-    <div class="room-card" style="--room-color:${r.color}" data-room="${r.id}">
-      <div class="r-name">${r.name}</div>
-      <div class="r-desc">${r.desc}</div>
+/* ===== 公式ルーム（固定・削除不可） ===== */
+const OFFICIAL_ROOM = { id: 'general', name: '総合ラウンジ', desc: '公式の雑談部屋。初めての方はまずここへ。', color: '#3762f0' };
+
+/* ===== ジャンル一覧（ここに追加・削除・編集できる） ===== */
+const GENRES = [
+  { id: 'chat',   label: '雑談',         color: '#3762f0' },
+  { id: 'game',   label: 'ゲーム',       color: '#e67e22' },
+  { id: 'anime',  label: 'アニメ・漫画', color: '#e84393' },
+  { id: 'music',  label: '音楽',         color: '#2bb3a3' },
+  { id: 'hobby',  label: '趣味・創作',   color: '#9b59b6' },
+  { id: 'nariki', label: 'なりきり',     color: '#c0392b' },
+  { id: 'other',  label: 'その他',       color: '#7f8c8d' },
+];
+
+const ICONS = ['😺','🐶','🐰','🐼','🦊','🐸','🐻','🐨','🦉','🐙','🐢','🦄','👻','🤖','🌙','⭐'];
+
+function escapeHTML(str) {
+  return String(str == null ? '' : str).replace(/[&<>"']/g, s => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  }[s]));
+}
+
+let roomList = {};
+let presenceRefs = [];
+const totalCountEl = document.getElementById('totalCount');
+const roomsContainer = document.getElementById('roomsContainer');
+
+function getRoomInfo(id) {
+  if (id === OFFICIAL_ROOM.id) return OFFICIAL_ROOM;
+  const r = roomList[id];
+  return r ? { id, ...r } : { id, name: id, color: '#3762f0' };
+}
+
+function roomCardHTML(r, isOfficial) {
+  return `
+    <div class="room-card" style="--room-color:${r.color || '#3762f0'}" data-room="${r.id}">
+      ${isOfficial ? '<span class="r-badge">公式</span>' : ''}
+      <div class="r-name">${escapeHTML(r.name)}</div>
+      <div class="r-desc">${escapeHTML(r.desc || '')}</div>
       <div class="r-foot">
         <span class="r-count" data-count="${r.id}"><span class="dot"></span>0人</span>
         <span class="r-enter">入室する</span>
       </div>
-    </div>
-  `).join('');
-  roomGrid.querySelectorAll('.room-card').forEach(card => {
+    </div>`;
+}
+
+function renderRooms() {
+  let html = `
+    <div class="genre-block">
+      <div class="genre-head"><span class="genre-dot" style="background:${OFFICIAL_ROOM.color}"></span>公式<span class="official-badge">OFFICIAL</span></div>
+      <div class="room-grid">${roomCardHTML(OFFICIAL_ROOM, true)}</div>
+    </div>`;
+
+  GENRES.forEach(g => {
+    const rooms = Object.keys(roomList)
+      .map(id => ({ id, ...roomList[id] }))
+      .filter(r => r.genre === g.id)
+      .sort((a, b) => (b.time || 0) - (a.time || 0));
+
+    html += `
+      <div class="genre-block">
+        <div class="genre-head"><span class="genre-dot" style="background:${g.color}"></span>${g.label}</div>
+        ${rooms.length
+          ? `<div class="room-grid">${rooms.map(r => roomCardHTML(r, false)).join('')}</div>`
+          : `<p class="genre-empty">まだルームがありません。最初の1部屋を作ってみませんか？</p>`}
+      </div>`;
+  });
+
+  html += `
+    <div class="genre-block">
+      <button class="room-card room-card-new" id="openCreateBtn">
+        <div class="r-new-icon">＋</div>
+        <div class="r-new-label">新しいルームを作る</div>
+      </button>
+    </div>`;
+
+  roomsContainer.innerHTML = html;
+
+  roomsContainer.querySelectorAll('.room-card[data-room]').forEach(card => {
     card.addEventListener('click', () => openModal(card.dataset.room));
   });
-}
-renderRooms();
+  const createBtn = document.getElementById('openCreateBtn');
+  if (createBtn) createBtn.addEventListener('click', openCreateModal);
 
-CHAT_ROOMS.forEach(r => {
-  db.ref('rooms/' + r.id + '/presence').on('value', snap => {
-    const count = snap.exists() ? Object.keys(snap.val()).length : 0;
-    liveCounts[r.id] = count;
-    const el = roomGrid.querySelector(`[data-count="${r.id}"]`);
-    if (el) el.innerHTML = `<span class="dot"></span>${count}人`;
-    const total = Object.values(liveCounts).reduce((a,b) => a+b, 0);
-    totalCountEl.textContent = `${total} 人が参加中`;
+  attachPresenceListeners();
+}
+
+function attachPresenceListeners() {
+  presenceRefs.forEach(({ ref, cb }) => ref.off('value', cb));
+  presenceRefs = [];
+
+  const allRooms = [OFFICIAL_ROOM, ...Object.keys(roomList).map(id => ({ id, ...roomList[id] }))];
+  const counts = {};
+
+  allRooms.forEach(r => {
+    const ref = db.ref('rooms/' + r.id + '/presence');
+    const cb = snap => {
+      const count = snap.exists() ? Object.keys(snap.val()).length : 0;
+      counts[r.id] = count;
+      const el = roomsContainer.querySelector(`[data-count="${r.id}"]`);
+      if (el) el.innerHTML = `<span class="dot"></span>${count}人`;
+      const total = Object.values(counts).reduce((a, b) => a + b, 0);
+      totalCountEl.textContent = `${total} 人が参加中`;
+    };
+    ref.on('value', cb);
+    presenceRefs.push({ ref, cb });
   });
+}
+
+db.ref('room_list').on('value', snap => {
+  roomList = snap.val() || {};
+  renderRooms();
 });
 
 const overlay = document.getElementById('modalOverlay');
@@ -239,10 +376,10 @@ iconGrid.querySelectorAll('.icon-opt').forEach(opt => {
   });
 });
 
-function openModal(roomId) {
+function openModal(roomId, roomDataOverride) {
   selectedRoom = roomId;
-  const room = CHAT_ROOMS.find(r => r.id === roomId);
-  modalRoomName.textContent = room ? room.name : roomId;
+  const room = roomDataOverride || getRoomInfo(roomId);
+  modalRoomName.textContent = room.name;
   const savedName = localStorage.getItem('chat_name');
   const savedIcon = localStorage.getItem('chat_icon');
   nickInput.value = savedName || '';
@@ -266,6 +403,39 @@ modalEnter.addEventListener('click', () => {
   localStorage.setItem('chat_name', name);
   localStorage.setItem('chat_icon', selectedIcon);
   window.location.href = 'room.html?room=' + encodeURIComponent(selectedRoom);
+});
+
+const createOverlay = document.getElementById('createOverlay');
+const roomNameInput = document.getElementById('roomNameInput');
+const roomDescInput = document.getElementById('roomDescInput');
+const roomGenreSelect = document.getElementById('roomGenreSelect');
+roomGenreSelect.innerHTML = GENRES.map(g => `<option value="${g.id}">${g.label}</option>`).join('');
+
+function openCreateModal() { createOverlay.classList.add('show'); }
+function closeCreateModal() {
+  createOverlay.classList.remove('show');
+  roomNameInput.value = '';
+  roomDescInput.value = '';
+}
+document.getElementById('createCancel').addEventListener('click', closeCreateModal);
+createOverlay.addEventListener('click', e => { if (e.target === createOverlay) closeCreateModal(); });
+
+document.getElementById('createSubmit').addEventListener('click', () => {
+  const name = roomNameInput.value.trim().slice(0, 24);
+  const desc = roomDescInput.value.trim().slice(0, 60);
+  const genre = roomGenreSelect.value;
+  if (!name) { alert('ルーム名を入力してください'); return; }
+
+  const genreInfo = GENRES.find(g => g.id === genre) || GENRES[0];
+  const newRef = db.ref('room_list').push();
+  const roomData = { name, desc, genre, color: genreInfo.color, time: firebase.database.ServerValue.TIMESTAMP };
+
+  newRef.set(roomData).then(() => {
+    closeCreateModal();
+    openModal(newRef.key, roomData);
+  }).catch(() => {
+    alert('作成に失敗しました。時間をおいて再度お試しください。');
+  });
 });
 </script>
 </body>

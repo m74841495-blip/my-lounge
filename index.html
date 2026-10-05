@@ -119,7 +119,13 @@ footer .inner { max-width:1040px; margin:0 auto; padding:0 24px; display:flex; j
 .btn-primary:hover { background: var(--accent-dark); }
 .btn-ghost { background: var(--bg); color: var(--muted); }
 .btn-ghost:hover { color: var(--ink); }
-
+.modal-box textarea { width:100%; padding:12px 14px; border:1.5px solid var(--border); border-radius:10px; font: inherit; font-size:.95rem; background: var(--bg); color: var(--ink); resize: vertical; min-height: 120px; }
+.modal-box textarea:focus { outline:none; border-color: var(--accent); }
+.char-count { text-align:right; font-family: var(--mono); font-size:.72rem; color: var(--muted); margin: 6px 0 20px; }
+.char-count.warn { color:#e67e22; }
+.char-count.zero { color:#e74c3c; }
+.footer-link { background:none; border:none; color: var(--muted); font-size:.78rem; text-decoration: underline; }
+.footer-link:hover { color: var(--accent); }
 @media (max-width: 640px) { nav ul { gap:14px; } .icon-grid { grid-template-columns: repeat(6,1fr); } }
 </style>
 </head>
@@ -170,6 +176,7 @@ footer .inner { max-width:1040px; margin:0 auto; padding:0 24px; display:flex; j
     <span>© Lounge</span>
     <span>AI-assisted development</span>
     <span>Powered by Firebase</span>
+        <button class="footer-link" id="openFeedbackBtn">ご意見箱</button>
   </div>
 </footer>
 
@@ -203,7 +210,19 @@ footer .inner { max-width:1040px; margin:0 auto; padding:0 24px; display:flex; j
     </div>
   </div>
 </div>
-
+<div class="modal-overlay" id="feedbackOverlay">
+  <div class="modal-box">
+    <h3>ご意見箱</h3>
+    <span class="m-room-name">匿名で送信されます</span>
+    <label for="feedbackInput">ご意見・ご要望</label>
+    <textarea id="feedbackInput" maxlength="500" placeholder="改善してほしい点や要望をお書きください"></textarea>
+    <div class="char-count" id="feedbackCount">残り 500 文字</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="feedbackCancel">やめる</button>
+      <button class="btn btn-primary" id="feedbackSubmit">送信する</button>
+    </div>
+  </div>
+</div>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script> <!-- これを追加 -->
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
@@ -438,6 +457,57 @@ document.getElementById('createSubmit').addEventListener('click', () => {
   }).catch(() => {
     alert('作成に失敗しました。時間をおいて再度お試しください。');
   });
+});
+/* ===== ご意見箱 ===== */
+const FEEDBACK_MAX = 500;
+const feedbackOverlay = document.getElementById('feedbackOverlay');
+const feedbackInput = document.getElementById('feedbackInput');
+const feedbackCount = document.getElementById('feedbackCount');
+const feedbackSubmit = document.getElementById('feedbackSubmit');
+
+function updateFeedbackCount() {
+  const left = Math.max(0, FEEDBACK_MAX - feedbackInput.value.length);
+  feedbackCount.textContent = '残り ' + left + ' 文字';
+  feedbackCount.className = 'char-count' + (left === 0 ? ' zero' : left <= 50 ? ' warn' : '');
+}
+function clampFeedback() {
+  if (feedbackInput.value.length > FEEDBACK_MAX) {
+    feedbackInput.value = feedbackInput.value.slice(0, FEEDBACK_MAX);
+  }
+  updateFeedbackCount();
+}
+feedbackInput.addEventListener('input', e => { if (!e.isComposing) clampFeedback(); else updateFeedbackCount(); });
+feedbackInput.addEventListener('compositionend', clampFeedback);
+
+document.getElementById('openFeedbackBtn').addEventListener('click', () => {
+  feedbackOverlay.classList.add('show');
+  feedbackInput.focus();
+});
+function closeFeedback() { feedbackOverlay.classList.remove('show'); }
+document.getElementById('feedbackCancel').addEventListener('click', closeFeedback);
+feedbackOverlay.addEventListener('click', e => { if (e.target === feedbackOverlay) closeFeedback(); });
+
+feedbackSubmit.addEventListener('click', async () => {
+  const text = feedbackInput.value.trim();
+  if (!text) { alert('ご意見を入力してください'); return; }
+  feedbackSubmit.disabled = true;
+  try {
+    if (!firebase.auth().currentUser) await firebase.auth().signInAnonymously();
+    await db.ref('feedback').push({
+      uid: firebase.auth().currentUser.uid,
+      text: text.slice(0, FEEDBACK_MAX),
+      time: firebase.database.ServerValue.TIMESTAMP
+    });
+    feedbackInput.value = '';
+    updateFeedbackCount();
+    closeFeedback();
+    alert('ご意見ありがとうございました。');
+  } catch (err) {
+    console.error('ご意見送信失敗:', err.code, err.message);
+    alert('送信に失敗しました。時間をおいて再度お試しください。');
+  } finally {
+    feedbackSubmit.disabled = false;
+  }
 });
 </script>
 </body>

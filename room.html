@@ -158,6 +158,7 @@ document.getElementById('themeToggle').addEventListener('click', () => {
 /* ===== ルーム情報 ===== */
 const OFFICIAL_ROOM = { id: 'general', name: '総合ラウンジ', color: '#3762f0' };
 const ICONS = ['😺','🐶','🐰','🐼','🦊','🐸','🐻','🐨','🦉','🐙','🐢','🦄','👻','🤖','🌙','⭐'];
+const params = new URLSearchParams(location.search); // ← ★この1行を追加！
 const roomId = params.get('room') || 'general';
 
 const ADMIN_UID = 'zYwUnzysADUgez4NfBgS9ht5LTu1';

@@ -205,6 +205,7 @@ footer .inner { max-width:1040px; margin:0 auto; padding:0 24px; display:flex; j
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script> <!-- これを追加 -->
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 <script>
 /* ===== Firebase設定 ===== */
@@ -220,15 +221,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-/* ===== 管理者設定（自分だけの合言葉に変更してください） ===== */
-const ADMIN_SECRET = 'Nishi1229';
-const ADMIN_UID = 'admin-root';
-(function claimAdminIfNeeded() {
-  const p = new URLSearchParams(location.search);
-  if (p.get('admin') === ADMIN_SECRET) {
-    localStorage.setItem('chat_uid', ADMIN_UID);
-  }
-})();
+
 
 /* ===== テーマ切り替え ===== */
 function applyThemeIcon() {
@@ -396,14 +389,19 @@ overlay.addEventListener('click', e => { if (e.target === overlay) closeModal();
 
 modalEnter.addEventListener('click', () => {
   const name = nickInput.value.trim().slice(0, 16) || '名無しさん';
-  let uid = localStorage.getItem('chat_uid');
-  if (!uid) {
-    uid = 'u-' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
-    localStorage.setItem('chat_uid', uid);
-  }
-  localStorage.setItem('chat_name', name);
-  localStorage.setItem('chat_icon', selectedIcon);
-  window.location.href = 'room.html?room=' + encodeURIComponent(selectedRoom);
+  
+  // Firebaseの匿名ログインを実行
+  firebase.auth().signInAnonymously()
+    .then(() => {
+      // ログイン成功時に名前とアイコンだけを保存して遷移
+      localStorage.setItem('chat_name', name);
+      localStorage.setItem('chat_icon', selectedIcon);
+      window.location.href = 'room.html?room=' + encodeURIComponent(selectedRoom);
+    })
+    .catch((error) => {
+      console.error("認証エラー:", error);
+      alert('入室に失敗しました。');
+    });
 });
 
 const createOverlay = document.getElementById('createOverlay');

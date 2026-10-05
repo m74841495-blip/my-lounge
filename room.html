@@ -123,6 +123,7 @@ header { background: var(--surface); border-bottom: 1px solid var(--border); hei
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script> <!-- これを追加 -->
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 <script>
 /* ===== Firebase設定 ===== */
@@ -138,13 +139,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-/* ===== 管理者設定（index.htmlと同じ合言葉にする） ===== */
-const ADMIN_SECRET = 'Nishi1229';
-const ADMIN_UID = 'admin-root';
-const params = new URLSearchParams(location.search);
-if (params.get('admin') === ADMIN_SECRET) {
-  localStorage.setItem('chat_uid', ADMIN_UID);
-}
+
 
 /* ===== テーマ切り替え ===== */
 function applyThemeIcon() {
@@ -165,7 +160,9 @@ const OFFICIAL_ROOM = { id: 'general', name: '総合ラウンジ', color: '#3762
 const ICONS = ['😺','🐶','🐰','🐼','🦊','🐸','🐻','🐨','🦉','🐙','🐢','🦄','👻','🤖','🌙','⭐'];
 const roomId = params.get('room') || 'general';
 
-let uid = localStorage.getItem('chat_uid');
+const ADMIN_UID = 'zYwUnzysADUgez4NfBgS9ht5LTu1';
+
+let uid = null;
 let myName = localStorage.getItem('chat_name');
 let myIcon = localStorage.getItem('chat_icon');
 
@@ -198,22 +195,36 @@ resolveRoomInfo(roomInfo => {
   document.getElementById('roomTitle').textContent = roomInfo.name;
   document.querySelector('.room-tag .dot').style.background = roomInfo.color;
 
-  if (!uid || !myName || !myIcon) {
-    entryOverlay.style.display = 'flex';
-    document.getElementById('entryBtn').addEventListener('click', () => {
-      const name = document.getElementById('nickInput').value.trim().slice(0, 16) || '名無しさん';
-      uid = localStorage.getItem('chat_uid') || ('u-' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36));
-      myName = name;
-      myIcon = pickedIcon;
-      localStorage.setItem('chat_uid', uid);
-      localStorage.setItem('chat_name', myName);
-      localStorage.setItem('chat_icon', myIcon);
-      entryOverlay.style.display = 'none';
+  // ログイン状態を監視する
+  firebase.auth().onAuthStateChanged(user => {
+    if (user && myName && myIcon) {
+      // ログイン済み かつ 名前・アイコンがある場合（通常ルート）
+      uid = user.uid; // Firebaseが発行した本物のUIDを使う
       joinRoom();
-    });
-  } else {
-    joinRoom();
-  }
+    } else {
+      // 未ログイン、または直リンクで名前データがない場合
+      entryOverlay.style.display = 'flex';
+      
+      document.getElementById('entryBtn').onclick = () => {
+        const name = document.getElementById('nickInput').value.trim().slice(0, 16) || '名無しさん';
+        
+        firebase.auth().signInAnonymously()
+          .then((userCredential) => {
+            uid = userCredential.user.uid;
+            myName = name;
+            myIcon = pickedIcon;
+            localStorage.setItem('chat_name', myName);
+            localStorage.setItem('chat_icon', myIcon);
+            entryOverlay.style.display = 'none';
+            joinRoom();
+          })
+          .catch((error) => {
+            console.error("認証エラー:", error);
+            alert('入室に失敗しました。');
+          });
+      };
+    }
+  });
 });
 
 function joinRoom() {

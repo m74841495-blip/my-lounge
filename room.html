@@ -180,53 +180,66 @@ iconGrid.querySelectorAll('.icon-opt').forEach(opt => {
   });
 });
 
-function resolveRoomInfo(callback) {
-  if (roomId === OFFICIAL_ROOM.id) {
-    callback(OFFICIAL_ROOM);
-    return;
-  }
-  db.ref('room_list/' + roomId).once('value').then(snap => {
-    const d = snap.val();
-    callback(d ? { id: roomId, name: d.name, color: d.color || '#3762f0' }
-                : { id: roomId, name: '不明なルーム', color: '#7f8c8d' });
-  });
+// 不正なroomId対策(. # $ [ ] / を含むとFirebaseが例外を投げて止まる)
+if (!/^[A-Za-z0-9_-]{1,64}$/.test(roomId)) {
+  location.replace('index.html');
 }
 
-resolveRoomInfo(roomInfo => {
-  document.getElementById('roomTitle').textContent = roomInfo.name;
-  document.querySelector('.room-tag .dot').style.background = roomInfo.color;
+let joined = false;   // 二重入室防止
 
-  // ログイン状態を監視する
-  firebase.auth().onAuthStateChanged(user => {
-    if (user && myName && myIcon) {
-      // ログイン済み かつ 名前・アイコンがある場合（通常ルート）
-      uid = user.uid; // Firebaseが発行した本物のUIDを使う
-      joinRoom();
-    } else {
-      // 未ログイン、または直リンクで名前データがない場合
-      entryOverlay.style.display = 'flex';
-      
-      document.getElementById('entryBtn').onclick = () => {
-        const name = document.getElementById('nickInput').value.trim().slice(0, 16) || '名無しさん';
-        
-        firebase.auth().signInAnonymously()
-          .then((userCredential) => {
-            uid = userCredential.user.uid;
-            myName = name;
-            myIcon = pickedIcon;
-            localStorage.setItem('chat_name', myName);
-            localStorage.setItem('chat_icon', myIcon);
-            entryOverlay.style.display = 'none';
-            joinRoom();
-          })
-          .catch((error) => {
-            console.error("認証エラー:", error);
-            alert('入室に失敗しました。');
-          });
-      };
-    }
-  });
+function loadRoomInfo() {
+  const apply = info => {
+    document.getElementById('roomTitle').textContent = info.name;
+    document.querySelector('.room-tag .dot').style.background = info.color;
+  };
+  if (roomId === OFFICIAL_ROOM.id) { apply(OFFICIAL_ROOM); return; }
+
+  db.ref('room_list/' + roomId).once('value')
+    .then(snap => {
+      const d = snap.val();
+      apply(d ? { name: d.name, color: d.color || '#3762f0' }
+              : { name: '不明なルーム', color: '#7f8c8d' });
+    })
+    .catch(err => {
+      console.error('ルーム情報の取得に失敗:', err);
+      apply({ name: 'ルーム', color: '#7f8c8d' });   // 失敗しても止めない
+    });
+}
+
+function startRoom(u) {
+  if (joined) return;
+  joined = true;
+  uid = u;
+  entryOverlay.style.display = 'none';
+  loadRoomInfo();   // ★ログイン後に読む
+  joinRoom();
+}
+
+document.getElementById('roomTitle').textContent = 'ルーム';
+
+firebase.auth().onAuthStateChanged(user => {
+  if (user && myName && myIcon) {
+    startRoom(user.uid);
+  } else if (!joined) {
+    entryOverlay.style.display = 'flex';
+  }
 });
+
+document.getElementById('entryBtn').onclick = () => {
+  const name = document.getElementById('nickInput').value.trim().slice(0, 16) || '名無しさん';
+  firebase.auth().signInAnonymously()
+    .then(cred => {
+      myName = name;
+      myIcon = pickedIcon;
+      localStorage.setItem('chat_name', myName);
+      localStorage.setItem('chat_icon', myIcon);
+      startRoom(cred.user.uid);
+    })
+    .catch(error => {
+      console.error('認証エラー:', error);
+      alert('入室に失敗しました。');
+    });
+};
 
 function joinRoom() {
   const presenceRef = db.ref('rooms/' + roomId + '/presence/' + uid);
@@ -266,7 +279,7 @@ function joinRoom() {
       }
       list.appendChild(row);
     });
-  });
+    }, err => console.error('presence取得失敗:', err));
 
   const messagesEl = document.getElementById('messages');
   db.ref('rooms/' + roomId + '/messages').limitToLast(100).on('child_added', snap => {
@@ -299,7 +312,7 @@ function joinRoom() {
     row.appendChild(body);
     messagesEl.appendChild(row);
     messagesEl.scrollTop = messagesEl.scrollHeight;
-  });
+    }, err => console.error('messages取得失敗:', err));
 
   const input = document.getElementById('msgInput');
   const sendBtn = document.getElementById('sendBtn');
@@ -310,10 +323,14 @@ function joinRoom() {
     db.ref('rooms/' + roomId + '/messages').push({
       uid, name: myName, icon: myIcon, text: text.slice(0, 300),
       time: firebase.database.ServerValue.TIMESTAMP
-    }).then(() => {
+        }).then(() => {
       input.value = '';
-      sendBtn.disabled = false;
       input.focus();
+    }).catch(err => {
+      console.error(err);
+      alert('送信に失敗しました。');
+    }).finally(() => {
+      sendBtn.disabled = false;
     });
   }
   sendBtn.addEventListener('click', send);

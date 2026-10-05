@@ -346,9 +346,12 @@ function attachPresenceListeners() {
   });
 }
 
-db.ref('room_list').on('value', snap => {
-  roomList = snap.val() || {};
-  renderRooms();
+firebase.auth().onAuthStateChanged(u => {
+  if (!u) { firebase.auth().signInAnonymously().catch(e => console.error(e)); return; }
+  db.ref('room_list').on('value', snap => {
+    roomList = snap.val() || {};
+    renderRooms();
+  }, err => console.error(err));
 });
 
 const overlay = document.getElementById('modalOverlay');

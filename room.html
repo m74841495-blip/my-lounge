@@ -161,7 +161,7 @@ const ICONS = ['😺','🐶','🐰','🐼','🦊','🐸','🐻','🐨','🦉','�
 const params = new URLSearchParams(location.search); // ← ★この1行を追加！
 const roomId = params.get('room') || 'general';
 
-const ADMIN_UID = 'zYwUnzysADUgez4NfBgS9ht5LTu1';
+const ADMIN_UIDS = ['zYwUnzysADUgez4NfBgS9ht5LTu1', 'op4sq7cPWRa7zM8hNUJn2NceCVx2'];
 
 let uid = null;
 let myName = localStorage.getItem('chat_name');
@@ -242,10 +242,14 @@ document.getElementById('entryBtn').onclick = () => {
 };
 
 function joinRoom() {
-  const presenceRef = db.ref('rooms/' + roomId + '/presence/' + uid);
-  presenceRef.set({ name: myName, icon: myIcon, time: firebase.database.ServerValue.TIMESTAMP });
-  presenceRef.onDisconnect().remove();
-  window.addEventListener('beforeunload', () => { presenceRef.remove(); });
+    const presenceRef = db.ref('rooms/' + roomId + '/presence/' + uid);
+  db.ref('.info/connected').on('value', snap => {
+    if (!snap.val()) return;
+    presenceRef.onDisconnect().remove().then(() => {
+      presenceRef.set({ name: myName, icon: myIcon, time: firebase.database.ServerValue.TIMESTAMP });
+    });
+  });
+  window.addEventListener('pagehide', () => { presenceRef.remove(); });
 
   db.ref('rooms/' + roomId + '/presence').on('value', snap => {
     const list = document.getElementById('memberList');
@@ -264,7 +268,7 @@ function joinRoom() {
       nameSpan.textContent = m.name;
       row.appendChild(iconSpan);
       row.appendChild(nameSpan);
-      if (k === ADMIN_UID) {
+      if (ADMIN_UIDS.includes(k)) {
         const badge = document.createElement('span');
         badge.className = 'admin-badge';
         badge.textContent = '👑';
@@ -288,14 +292,14 @@ function joinRoom() {
     const row = document.createElement('div');
     row.className = 'msg' + (m.uid === uid ? ' me' : '');
     const iconEl = document.createElement('div');
-    iconEl.className = 'm-icon' + (m.uid === ADMIN_UID ? ' admin-icon' : '');
+    iconEl.className = 'm-icon' + (ADMIN_UIDS.includes(m.uid) ? ' admin-icon' : '');
     iconEl.textContent = m.icon || '🙂';
     const body = document.createElement('div');
     body.className = 'm-body';
     const meta = document.createElement('div');
     meta.className = 'm-meta';
     const time = m.time ? new Date(m.time).toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit'}) : '';
-    if (m.uid === ADMIN_UID) {
+    if (ADMIN_UIDS.includes(m.uid)) {
       const badge = document.createElement('span');
       badge.className = 'admin-badge';
       badge.textContent = '👑 ';

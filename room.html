@@ -219,36 +219,37 @@ function joinRoom() {
   });
 
   const messagesEl = document.getElementById('messages');
-  db.ref('rooms/' + roomId + '/messages').limitToLast(100).on('child_added', snap => {
-    const m = snap.val();
-    if (!m) return;
-    const row = document.createElement('div');
-    row.className = 'msg' + (m.uid === uid ? ' me' : '');
-    const iconEl = document.createElement('div');
-    iconEl.className = 'm-icon' + (m.uid === ADMIN_UID ? ' admin-icon' : '');
-    iconEl.textContent = m.icon || '🙂';
-    const body = document.createElement('div');
-    body.className = 'm-body';
-        const meta = document.createElement('div');
-    meta.className = 'm-meta';
-    const time = m.time ? new Date(m.time).toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit'}) : '';
-    if (m.uid === ADMIN_UID) {
-      const badge = document.createElement('span');
-      badge.className = 'admin-badge';
-      badge.textContent = '👑 ';
-      badge.title = '管理者';
-      meta.appendChild(badge);
-    }
-    meta.appendChild(document.createTextNode((m.name || '名無しさん') + '・' + time));
-    bubble.className = 'm-bubble';
-    bubble.textContent = m.text || '';
-    body.appendChild(meta);
-    body.appendChild(bubble);
-    row.appendChild(iconEl);
-    row.appendChild(body);
-    messagesEl.appendChild(row);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-  });
+db.ref('rooms/' + roomId + '/messages').limitToLast(100).on('child_added', snap => {
+  const m = snap.val();
+  if (!m) return;
+  const row = document.createElement('div');
+  row.className = 'msg' + (m.uid === uid ? ' me' : '');
+  const iconEl = document.createElement('div');
+  iconEl.className = 'm-icon' + (m.uid === ADMIN_UID ? ' admin-icon' : '');
+  iconEl.textContent = m.icon || '🙂';
+  const body = document.createElement('div');
+  body.className = 'm-body';
+  const meta = document.createElement('div');
+  meta.className = 'm-meta';
+  const time = m.time ? new Date(m.time).toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit'}) : '';
+  if (m.uid === ADMIN_UID) {
+    const badge = document.createElement('span');
+    badge.className = 'admin-badge';
+    badge.textContent = '👑 ';
+    badge.title = '管理者';
+    meta.appendChild(badge);
+  }
+  meta.appendChild(document.createTextNode((m.name || '名無しさん') + '・' + time));
+  const bubble = document.createElement('div');
+  bubble.className = 'm-bubble';
+  bubble.textContent = m.text || '';
+  body.appendChild(meta);
+  body.appendChild(bubble);
+  row.appendChild(iconEl);
+  row.appendChild(body);
+  messagesEl.appendChild(row);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+});
 
   const input = document.getElementById('msgInput');
   const sendBtn = document.getElementById('sendBtn');

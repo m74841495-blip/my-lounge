@@ -316,25 +316,25 @@ function joinRoom() {
 
   const input = document.getElementById('msgInput');
   const sendBtn = document.getElementById('sendBtn');
-  function send() {
+    function send() {
     const text = input.value.trim();
-    if (!text) return;
-    sendBtn.disabled = true;
+    if (!text || sendBtn.disabled) return;
+    input.value = '';            // 送信と同時に入力欄をリセット
+    sendBtn.disabled = true;     // 完了まで再送信を防ぐ
     db.ref('rooms/' + roomId + '/messages').push({
       uid, name: myName, icon: myIcon, text: text.slice(0, 300),
       time: firebase.database.ServerValue.TIMESTAMP
-        }).then(() => {
-      input.value = '';
-      input.focus();
     }).catch(err => {
-      console.error(err);
+      console.error('送信失敗:', err.code, err.message);
+      if (!input.value) input.value = text;   // 失敗時は文章を戻す
       alert('送信に失敗しました。');
     }).finally(() => {
       sendBtn.disabled = false;
+      input.focus();
     });
   }
   sendBtn.addEventListener('click', send);
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+    input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) send(); });
 }
 </script>
 </body>
